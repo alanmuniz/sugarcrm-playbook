@@ -1,0 +1,160 @@
+---
+
+- hosts: microplat
+  tasks:  
+
+  - name: Instalacion de apps varias
+    action: apt pkg={{ item }} state=present
+    with_items:
+        - htop
+        - vim
+        - iftop
+        - iotop
+        - git      
+        - apache2
+        - mysql-server
+        - unzip
+        - nfs-common
+        - s3fs
+        - composer
+        - zip
+        - unzip
+        - netcat
+        - openjdk-8-jdk
+        
+  - name: Install add-apt-repostory
+    become: true
+    apt: name=software-properties-common state=latest
+    
+  - name: Ad d PHP Repository
+    become: true
+    apt_repository: repo='ppa:ondrej/php'
+
+  - name: Install PHP 7.1
+    become: true
+    apt: name={{item}} state=latest
+    with_items:
+        - php7.1-cli
+        - php7.1-common 
+        - php7.1-dev 
+        - php7.1-mysql 
+        - php7.1-curl 
+        - php7.1-gd 
+        - php7.1-imap 
+        - php7.1-mcrypt 
+        - php7.1-xmlrpc 
+        - php7.1-xsl 
+        - php7.1-zip 
+        - php7.1-mbstring 
+        - php7.1-fpm 
+        - php7.1-bcmath
+        - php7.1-redis
+        - php7.1-memcached
+        - php7.1-ldap
+        - php7.1-zip
+        - libapache2-mod-php7.1    
+        
+###########################################################################
+#   Apache
+########################################################################
+  - name: Enable apache rewrite module
+    command:  a2enmod rewrite
+    
+  - name: Enable apache cache module
+    command:  a2enmod file_cache  
+    
+  - name: Enable apache headers module
+    command:  a2enmod headers      
+    
+  - name: Enable proxy-mods
+    command: a2enmod proxy
+
+  - name: Enable proxy_http-mod
+    command: a2enmod proxy_http
+    
+  - name: Enable proxy_balancer
+    command: a2enmod proxy_balancer
+    
+  - name: Enable proxy_connect
+    command: a2enmod proxy_connect
+    
+  - name: Enable proxy_html
+    command: a2enmod proxy_html    
+    
+  - name: Enable deflate
+    command: a2enmod deflate
+    
+  - name: Enable apache phpenmod imap
+    command:  phpenmod imap
+    
+  - name: Enable phpenmod zip
+    command:  phpenmod zip
+    
+  - name: Enable apache rewrite module
+    command:  phpenmod mbstring
+        
+  - name: Restart apache
+    service:
+    name: Restart apache
+    state: restarted
+    
+  - name: Delete Apche default config
+    command:  rm /etc/apache2/sites-enabled/000-default.conf
+    
+  - name: Delete Apache default folder
+    command:  rm -r /var/www/html
+    
+  - name: Copy Apache default Vhost  
+    copy:
+      src:    ../templates/apache-example.conf
+      dest:   /etc/apache2/sites-enabled/
+      owner:  root
+      group:  root
+      mode:   0644
+      
+  - name: Restart apache2 Forced
+    command:  /etc/init.d/apache2 restart     
+
+###########################################################################
+#   ElasticSearch
+###########################################################################
+  - name: Download ElasticSearch 5.6.0
+    get_url:
+      url: https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.0.deb
+      dest: /home/ubuntu/
+      mode: 0440
+    
+  - name: Install elasticSearch 5.6.0
+    command:  dpkg -i /home/ubuntu/elasticsearch-5.6.0.deb
+
+  - name: Deleting ElasticSearch File
+    command:  rm /home/ubuntu/elasticsearch-5.6.0.deb
+    
+  - name: Start ElasticSearch
+    service:
+    name: Start ElasticSearch
+    state: restarted
+    
+  - name: Restart ElasticSearch Forced
+    command: /etc/init.d/elasticsearch restart
+    
+###########################################################################
+# Usermod 
+########################################################################### 
+  - name: Usermod www-data
+    command:  usermod -a -G www-data gitlab-runner
+    
+  - name: Usermod gitlab-runner
+    command:  usermod -a -G gitlab-runner www-data   
+   
+###########################################################################
+# Install Java? - Change paths
+###########################################################################
+#  - name: Update Alternatives Java Envs
+#    command:  update-alternatives --set java /usr/lib/jvm/jdk1.8.0_version/bin/java
+    
+###########################################################################
+# Restart Apache Final
+###########################################################################
+  - name: Restart apache2 Forced
+    command:  /etc/init.d/apache2 restart
